@@ -788,7 +788,27 @@ int do_uplink(struct uplink_config_t **lq, int argc, char **argv)
 				free_uplink_config(&l);
 				return -2;
 			}
+		} else if (strcasecmp(argv[i], "filter") == 0) {
+                        /* set a filter for the clients */
+                        i++;
+                        if (i >= argc) {
+                                hlog(LOG_ERR, "Listen: 'filter' argument is missing the filter parameter for '%s'", argv[1]);
+                                free_listen_config(&l);
+                                return -2;
+                        }
+
+                        if (clflags & (CLFLAGS_UDPSUBMIT|CLFLAGS_DUPEFEED)) {
+                                hlog(LOG_ERR, "Listen: '%s': 'filter' argument is not valid for port type of '%s'", argv[1], argv[2]);
+                                free_listen_config(&l);
+                                return -2;
+                        }
+
+                        if (config_parse_uplink_filter(l, argv[i], argv[1])) {
+                                free_listen_config(&l);
+                                return -2;
+                        }
 		} else {
+
 			hlog(LOG_ERR, "Uplink %s: Invalid parameter '%s'", argv[1], argv[i]);
 			free_uplink_config(&l);
 			return -2;
@@ -870,6 +890,44 @@ int do_uplinkbind(void *new, int argc, char **argv)
  */
 
 int config_parse_listen_filter(struct listen_config_t *l, char *filt_string, char *portname)
+{
+	int argc;
+	char *argv[256];
+	int i;
+	
+	argc = parse_args_noshell(argv, filt_string);
+	if (argc == 0) {
+		hlog(LOG_ERR, "Listen: Bad filter definition for '%s': '%s' - no filter arguments found",
+			portname, filt_string);
+		return -1;
+	}
+	
+	if (argc > LISTEN_MAX_FILTERS) {
+		hlog(LOG_ERR, "Listen: Bad filter definition for '%s': '%s' - too many (%d) filter arguments found, max %d",
+			portname, filt_string, argc, LISTEN_MAX_FILTERS);
+		return -1;
+	}
+	
+	for (i = 0; i < argc && i < LISTEN_MAX_FILTERS; i++) {
+		if (filter_parse(NULL, argv[i], 0) < 0) {
+			hlog(LOG_ERR, "Listen: Bad filter definition for '%s': '%s' - filter parsing failed",
+				portname, argv[i]);
+			return -1;
+		}
+		l->filters[i] = hstrdup(argv[i]);
+	}
+	
+	return 0;
+}
+
+/*
+ *	Parse a Uplink directive
+ *
+ *	listen <label> <token> [tcp|udp|sctp] <hostname> <portnum> [<filter> [..<more_filters>]]
+ *
+ */
+
+int config_parse_uplink_filter(struct uplink_config_t *l, char *filt_string, char *portname)
 {
 	int argc;
 	char *argv[256];

@@ -619,6 +619,15 @@ connerr:
 	c->username[sizeof(c->username)-1] = 0;
 	c->username_len = strlen(c->username);
 
+	/* apply predefined filters */
+        for (i = 0; i < (sizeof(l->filters)/sizeof(l->filters[0])); ++i) {
+                if (l->filters[i]) {
+                        if (filter_parse(c, l->filters[i], 0) < 0) { /* system filters */
+                                hlog(LOG_ERR, "Bad system filter definition: %s", l->filters[i]);
+                        }
+                }
+        }
+
 	/* These peer/sock name calls can not fail -- or the socket closed
 	   on us in which case it gets abandoned a bit further below. */
 

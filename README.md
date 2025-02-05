@@ -2,6 +2,8 @@
 aprsc - an APRS-IS server in C
 ==============================
 
+NOTE! This fork has been changed to allow outgoing filters on uplinks!
+
 ![Build Status](https://github.com/hessu/aprsc/actions/workflows/tests.yml/badge.svg)
 
 

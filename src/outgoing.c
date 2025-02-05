@@ -91,6 +91,12 @@ static void process_outgoing_single(struct worker_t *self, struct pbuf_t *pb)
 		/* client is from downstream, send to upstreams and peers */
 		for (c = self->clients_ups; (c); c = cnext) {
 			cnext = c->class_next; // client_write() MAY destroy the client object!
+
+			/* Process uplink filters to see if the packet should be sent. */
+			if (filter_process(self, c, pb) < 1) {
+				hlog(LOG_DEBUG, "fd %d: Not fullfeed or not matching filter, not sending.", c->fd);
+				continue;
+			}
 			if (c != origin)
 				send_single(self, c, pb->data, pb->packet_len);
 		}
